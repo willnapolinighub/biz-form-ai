@@ -1,7 +1,7 @@
 # BizFormAI - Automated Business Formation Platform
 
 <p align="center">
-  <img src="https://via.placeholder.com/400x100?text=BizFormAI" alt="BizFormAI Logo" />
+  <img src="https://github.com/willnapolinighub/biz-form-ai/blob/main/BizFormAILogo.png?raw=true" alt="BizFormAI Logo" />
 </p>
 
 <p align="center">
