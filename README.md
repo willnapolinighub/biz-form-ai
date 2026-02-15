@@ -20,10 +20,13 @@
   </a>
 </p>
 
+<p align="center">
+  <img src="https://via.placeholder.com/400x100?text=BizFormAI" alt="BizFormAI Banner" />
+</p>
+
 ## Overview
 
 BizFormAI is a comprehensive platform that automates the business formation process using AI agents and workflow automation. Built with Next.js for the frontend and N8N for backend workflows, it provides an end-to-end solution for entrepreneurs to form LLCs, C-Corps, and S-Corps.
-
 ## Features
 
 - **AI Business Classification**: Analyzes business descriptions to recommend optimal entity types
