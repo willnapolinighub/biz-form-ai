@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <img src="https://via.placeholder.com/400x100?text=BizFormAI" alt="BizFormAI Banner" />
+  <img src="https://github.com/willnapolinighub/biz-form-ai/blob/main/banner-github-bizform-ai.png?raw=true" alt="BizFormAI Banner" />
 </p>
 
 ## Overview
