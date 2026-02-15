@@ -1,0 +1,269 @@
+{
+  "name": "Document Generation Factory",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-docs",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "generate-docs"
+    },
+    {
+      "parameters": {
+        "operation": "jsonParse",
+        "jsonParseInput": "json",
+        "options": {}
+      },
+      "id": "parse-json",
+      "name": "Parse JSON",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "prompt": "You are a legal document drafting assistant specializing in business formation.\n\nGenerate the following documents based on the provided business details:\n1. Articles of Organization (for LLC) or Articles of Incorporation (for Corporation)\n2. Operating Agreement with custom clauses based on ownership structure\n3. Organizational Resolutions for banking\n\nAll documents must:\n- Use proper legal language\n- Include all state-required elements\n- Be customized with the exact business details provided\n- Output in clean markdown format\n\nBusiness Details:\n- Entity Type: {{$json.entityType}}\n- Business Name: {{$json.businessName}}\n- Owners/Members: {{$json.owners}}\n- Registered Agent: {{$json.registeredAgent}}\n- Principal Address: {{$json.state}}\n\nProvide the output as a JSON object with keys: articles_of_organization, operating_agreement, banking_resolutions",
+        "options": {
+          "model": "gpt-4"
+        }
+      },
+      "id": "ai-drafter",
+      "name": "AI Document Drafter",
+      "type": "langchain-agent",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.pdfmonkey.io/v1/documents",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$credentials.pdfApiKey}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "document_template_id",
+              "value": "articles-template-id"
+            },
+            {
+              "name": "business_name",
+              "value": "{{$json.businessName}}"
+            },
+            {
+              "name": "entity_type",
+              "value": "{{$json.entityType}}"
+            },
+            {
+              "name": "content",
+              "value": "{{$json.articles_of_organization}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pdf-articles",
+      "name": "Generate Articles PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://api.pdfmonkey.io/v1/documents",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$credentials.pdfApiKey}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "document_template_id",
+              "value": "operating-agreement-template-id"
+            },
+            {
+              "name": "business_name",
+              "value": "{{$json.businessName}}"
+            },
+            {
+              "name": "owners",
+              "value": "{{$json.owners}}"
+            },
+            {
+              "name": "content",
+              "value": "{{$json.operating_agreement}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pdf-operating",
+      "name": "Generate Operating Agreement PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "formations",
+        "columns": {
+          "business_name": "{{$json.businessName}}",
+          "entity_type": "{{$json.entityType}}",
+          "status": "documents_generated"
+        },
+        "options": {}
+      },
+      "id": "supabase-insert",
+      "name": "Save to Database",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "to": "{{$json.email}}",
+        "subject": "Your Business Formation Documents are Ready",
+        "text": "Your formation documents have been generated. Please log in to your dashboard to review and download them.",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Email Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"documents\": {\n    \"articles_of_organization\": \"generated\",\n    \"operating_agreement\": \"generated\"\n  },\n  \"filing_status\": \"documents_generated\"\n}"
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "AI Document Drafter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Document Drafter": {
+      "main": [
+        [
+          {
+            "node": "Generate Articles PDF",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Operating Agreement PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Articles PDF": {
+      "main": [
+        [
+          {
+            "node": "Save to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Operating Agreement PDF": {
+      "main": [
+        [
+          {
+            "node": "Save to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Database": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Notification": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["documents", "generation", "ai"],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "versionId": "1"
+}
